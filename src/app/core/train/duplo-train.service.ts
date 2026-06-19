@@ -39,7 +39,11 @@ export class DuploTrainService {
     this.patchState({ connection: 'connecting', error: undefined });
 
     try {
-      await BleClient.initialize({ androidNeverForLocation: true });
+      // Some OEMs (notably Xiaomi/MIUI) return zero BLE scan results unless the
+      // app holds the location permission, regardless of the neverForLocation
+      // hint. Initialize without that hint so the plugin requests location and
+      // scans actually return advertisements.
+      await BleClient.initialize({ androidNeverForLocation: false });
 
       const device = await this.scanForTrain();
 
