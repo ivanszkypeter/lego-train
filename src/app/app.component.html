@@ -18,7 +18,7 @@
         <div class="status-item">🔋 <strong>{{ batteryText() }}</strong></div>
         <div class="status-item">🔵 <strong>Bluetooth</strong></div>
         <div class="status-item light-status">
-          <span class="light-dot" [class]="train.state().lightColor"></span>
+          <span class="light-dot" [ngClass]="train.state().lightColor"></span>
           <strong>{{ activeLightText() }} fény</strong>
         </div>
       </section>
@@ -80,7 +80,7 @@
         <div class="light-grid">
           @for (light of lights; track light.id) {
             <button class="light-choice" type="button" (click)="setLight(light.id)" [class.selected]="train.state().lightColor === light.id">
-              <span class="color-circle" [class]="light.cssClass"></span>
+              <span class="color-circle" [ngClass]="light.cssClass"></span>
               <span>{{ light.label }}</span>
             </button>
           }
