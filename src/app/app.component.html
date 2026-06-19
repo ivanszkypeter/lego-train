@@ -1,0 +1,143 @@
+<ion-app>
+  <ion-content [fullscreen]="true" class="app-shell">
+    <main class="phone-screen">
+      <header class="hero">
+        <button class="settings" type="button" aria-label="Beállítások">⚙️</button>
+        <div class="sky-decoration cloud left"></div>
+        <div class="sky-decoration cloud right"></div>
+        <div class="train-logo" aria-hidden="true">🚂</div>
+        <h1>Vonatvezérlő</h1>
+        <div class="hill"></div>
+      </header>
+
+      <section class="status-strip card">
+        <button class="connection-pill" type="button" (click)="connectOrDisconnect()" [class.connected]="isConnected()">
+          <span class="dot"></span>
+          {{ connectionText() }}
+        </button>
+        <div class="status-item">🔋 <strong>{{ batteryText() }}</strong></div>
+        <div class="status-item">🔵 <strong>Bluetooth</strong></div>
+        <div class="status-item light-status">
+          <span class="light-dot" [class]="train.state().lightColor"></span>
+          <strong>{{ activeLightText() }} fény</strong>
+        </div>
+      </section>
+
+      @if (train.state().error) {
+        <section class="error-card card">
+          <strong>Nem sikerült kapcsolódni.</strong>
+          <span>{{ train.state().error }}</span>
+        </section>
+      }
+
+      <section class="speed-card card">
+        <div class="section-title center">Sebesség</div>
+        <div class="speed-value">{{ train.state().targetSpeed > 0 ? '+' : '' }}{{ train.state().targetSpeed }}%</div>
+
+        <div class="range-wrap">
+          <span>-100%</span>
+          <ion-range
+            min="-100"
+            max="100"
+            step="1"
+            [value]="train.state().targetSpeed"
+            aria-label="Sebesség"
+            (ionChange)="onSpeedChange($any($event).detail.value)"
+          ></ion-range>
+          <span>+100%</span>
+        </div>
+
+        <div class="drive-buttons">
+          <ion-button class="drive-button reverse" (click)="setPresetSpeed(-35)">
+            <span class="big-icon">◀◀</span>
+            <span>Hátra</span>
+          </ion-button>
+          <ion-button class="drive-button stop" (click)="stop()">
+            <span class="big-icon">⬢</span>
+            <span>STOP</span>
+          </ion-button>
+          <ion-button class="drive-button forward" (click)="setPresetSpeed(35)">
+            <span class="big-icon">▶▶</span>
+            <span>Előre</span>
+          </ion-button>
+        </div>
+      </section>
+
+      <section class="card sounds-card">
+        <div class="section-title">Hangok</div>
+        <div class="sound-grid">
+          @for (sound of sounds; track sound.id) {
+            <button class="square-button" type="button" (click)="playSound(sound.id)">
+              <span class="square-icon">{{ sound.icon }}</span>
+              <span>{{ sound.label }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="card lights-card">
+        <div class="section-title">Lámpa színe</div>
+        <div class="light-grid">
+          @for (light of lights; track light.id) {
+            <button class="light-choice" type="button" (click)="setLight(light.id)" [class.selected]="train.state().lightColor === light.id">
+              <span class="color-circle" [class]="light.cssClass"></span>
+              <span>{{ light.label }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="card simple-status">
+        <div class="section-title">Státusz</div>
+        <div class="status-grid">
+          <div class="mini-tile">
+            <span class="tile-icon">🎨</span>
+            <span class="tile-label">Érzékelt szín</span>
+            <strong>{{ train.state().detectedColor }}</strong>
+          </div>
+          <div class="mini-tile">
+            <span class="tile-icon">🚂</span>
+            <span class="tile-label">Mozgás</span>
+            <strong>{{ train.state().movementState }}</strong>
+          </div>
+          <div class="mini-tile">
+            <span class="tile-icon">⏱️</span>
+            <span class="tile-label">Mért sebesség</span>
+            <strong>{{ train.state().measuredSpeed > 0 ? '+' : '' }}{{ train.state().measuredSpeed }}%</strong>
+          </div>
+          <div class="mini-tile">
+            <span class="tile-icon">{{ train.state().lastEvent.icon }}</span>
+            <span class="tile-label">Utolsó esemény</span>
+            <strong>{{ train.state().lastEvent.label }}</strong>
+            <small>{{ formatTime(train.state().lastEvent.at) }}</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="card automation-card">
+        <div class="section-title">Automata módok</div>
+        <div class="toggle-row">
+          <label class="toggle-tile">
+            <span>🧱 Brick követés</span>
+            <ion-toggle [checked]="train.state().brickFollowEnabled" (ionChange)="train.toggleBrickFollow($any($event).detail.checked)"></ion-toggle>
+          </label>
+          <label class="toggle-tile">
+            <span>🏠 Állomás mód</span>
+            <ion-toggle [checked]="train.state().stationModeEnabled" (ionChange)="train.toggleStationMode($any($event).detail.checked)"></ion-toggle>
+          </label>
+          <label class="toggle-tile">
+            <span>🙂 Gyerek mód</span>
+            <ion-toggle [checked]="train.state().childModeEnabled" (ionChange)="train.toggleChildMode($any($event).detail.checked)"></ion-toggle>
+          </label>
+        </div>
+      </section>
+
+      <nav class="bottom-tabs" aria-label="Fő menü">
+        <button class="active" type="button">🚂<span>Vezérlés</span></button>
+        <button type="button">🔊<span>Hangok</span></button>
+        <button type="button">💡<span>Fények</span></button>
+        <button type="button">📶<span>Státusz</span></button>
+      </nav>
+    </main>
+  </ion-content>
+</ion-app>
