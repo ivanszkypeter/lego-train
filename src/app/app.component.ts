@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonApp, IonButton, IonContent, IonRange, IonToggle } from '@ionic/angular/standalone';
+import { LiveUpdateService } from './core/live-update/live-update.service';
 import { DuploTrainService } from './core/train/duplo-train.service';
 import { LightButton, SoundButton, TrainLightColor, TrainSound } from './core/train/train.types';
 
@@ -14,6 +15,7 @@ import { LightButton, SoundButton, TrainLightColor, TrainSound } from './core/tr
 })
 export class AppComponent {
   readonly train = inject(DuploTrainService);
+  readonly liveUpdate = inject(LiveUpdateService);
 
   readonly sounds: SoundButton[] = [
     { id: 'horn', label: 'Duda', icon: '📣' },
@@ -31,6 +33,10 @@ export class AppComponent {
     { id: 'blue', label: 'Kék', cssClass: 'blue' },
     { id: 'purple', label: 'Lila', cssClass: 'purple' }
   ];
+
+  constructor() {
+    void this.liveUpdate.initialize();
+  }
 
   async connectOrDisconnect(): Promise<void> {
     const connection = this.train.state().connection;
