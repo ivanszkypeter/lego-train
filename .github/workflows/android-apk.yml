@@ -40,7 +40,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build web assets
         run: npm run build -- --configuration production
@@ -88,7 +88,7 @@ jobs:
 
           if [ -z "$UNSIGNED_APK" ]; then
             echo "Unsigned release APK was not found."
-            find android/app/build/outputs/apk/release -type f -maxdepth 1 || true
+            find android/app/build/outputs/apk/release -maxdepth 1 -type f || true
             exit 1
           fi
 
