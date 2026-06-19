@@ -58,7 +58,7 @@ export class CapgoUpdaterAdapter implements NativeUpdaterAdapter {
 
   private loadPlugin(): Promise<CapgoUpdaterLike> {
     this.pluginPromise ??= import('@capgo/capacitor-updater').then((module) => {
-      const updater = module.CapacitorUpdater as CapgoUpdaterLike | undefined;
+      const updater = module.CapacitorUpdater as unknown as CapgoUpdaterLike | undefined;
       if (!updater) {
         throw new Error('A CapacitorUpdater plugin nem elérhető ezen a platformon.');
       }
