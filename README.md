@@ -12,6 +12,7 @@ Ez a repo egy első, futtatható MVP-t tartalmaz:
 - BLE adapter réteg Capacitorhoz
 - LEGO Wireless Protocol v3 parancsépítő réteg
 - Android/iOS natív shell + webes asset live update alap
+- Android APK pipeline csak natív shell változásra / kézi indítással
 
 ## Indítás
 
@@ -39,6 +40,27 @@ npx cap open ios
 ```
 
 A BLE tényleges teszteléséhez fizikai Android/iOS eszköz kell, emulátor/szimulátor nem elég.
+
+## APK pipeline
+
+Az Android APK-t a pipeline is elő tudja állítani:
+
+```text
+GitHub → Actions → android-apk → Run workflow
+```
+
+A workflow automatikusan csak natív szempontból fontos fájlok változásánál indul, például `capacitor.config.ts`, `package.json`, `android/**` vagy maga az APK workflow módosításakor.
+
+A workflow mindig készít debug APK artifactot. Ha stabil release aláírást is szeretnél, GitHub Secrets-ben ezek kellenek:
+
+```text
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEYSTORE_PASSWORD
+ANDROID_KEY_ALIAS
+ANDROID_KEY_PASSWORD
+```
+
+Részletek: `docs/android-apk-pipeline.md`.
 
 ## Frissítési modell
 
