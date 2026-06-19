@@ -34,8 +34,12 @@ export class DuploTrainService {
     try {
       await BleClient.initialize({ androidNeverForLocation: true });
 
+      // DUPLO/Powered Up hubs do not reliably expose the LWP3 service UUID in
+      // their advertising packet, so a `services` scan filter can hide them.
+      // Filter by the advertised name instead and keep LWP3 as an optional
+      // service so we can use its GATT characteristic after connecting.
       const device = await BleClient.requestDevice({
-        services: [LWP3_SERVICE_UUID],
+        namePrefix: 'Train',
         optionalServices: [LWP3_SERVICE_UUID]
       });
 
