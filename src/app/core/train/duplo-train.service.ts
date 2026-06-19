@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { BleClient, BleDevice } from '@capacitor-community/bluetooth-le';
+import { BleClient, BleDevice, ScanResult } from '@capacitor-community/bluetooth-le';
 import {
   createEnableColorNotificationsPacket,
   createEnableSpeedNotificationsPacket,
@@ -25,8 +25,15 @@ export class DuploTrainService {
   private readonly stateSignal = signal<TrainState>(INITIAL_TRAIN_STATE);
   readonly state = this.stateSignal.asReadonly();
 
+  // LEGO System A/S Bluetooth company identifier (0x0397 = 919). Powered Up /
+  // DUPLO hubs always include this in their advertisement, even when they expose
+  // neither a local name nor the LWP3 service UUID in the advertising packet.
+  private static readonly LEGO_MANUFACTURER_IDS = ['919', '0x0397', '397'];
+  private static readonly SCAN_TIMEOUT_MS = 12000;
+
   private device?: BleDevice;
   private writeQueue: Promise<void> = Promise.resolve();
+  private lastScanSummary = '';
 
   async connect(): Promise<void> {
     this.patchState({ connection: 'connecting', error: undefined });
@@ -34,14 +41,17 @@ export class DuploTrainService {
     try {
       await BleClient.initialize({ androidNeverForLocation: true });
 
-      // DUPLO/Powered Up hubs do not reliably expose the LWP3 service UUID in
-      // their advertising packet, so a `services` scan filter can hide them.
-      // Filter by the advertised name instead and keep LWP3 as an optional
-      // service so we can use its GATT characteristic after connecting.
-      const device = await BleClient.requestDevice({
-        namePrefix: 'Train',
-        optionalServices: [LWP3_SERVICE_UUID]
-      });
+      const device = await this.scanForTrain();
+
+      if (!device) {
+        const detail = this.lastScanSummary ? ` Talált eszközök: ${this.lastScanSummary}.` : '';
+        this.patchState({
+          connection: 'error',
+          error: `Nem találtam a vonatot. Kapcsold be (fehéren villog), és próbáld újra.${detail}`
+        });
+        this.pushEvent('Nincs eszköz', '⚠️');
+        return;
+      }
 
       await BleClient.connect(device.deviceId, () => this.onDisconnected());
       this.device = device;
@@ -77,6 +87,60 @@ export class DuploTrainService {
       await BleClient.disconnect(this.device.deviceId).catch(() => undefined);
     }
     this.onDisconnected();
+  }
+
+  /**
+   * Discover the train via a raw BLE advertisement scan. We cannot rely on a
+   * service- or name-based `requestDevice` filter because DUPLO hubs broadcast
+   * neither in their advertising packet, so we match the LEGO manufacturer id
+   * (and accept a name/service hit as a bonus). Records everything seen so a
+   * failed scan can report what was actually nearby.
+   */
+  private scanForTrain(): Promise<BleDevice | undefined> {
+    return new Promise<BleDevice | undefined>((resolve) => {
+      const seen = new Map<string, string>();
+      let settled = false;
+
+      const finish = async (device?: BleDevice): Promise<void> => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        await BleClient.stopLEScan().catch(() => undefined);
+        if (!device) {
+          this.lastScanSummary = [...seen.values()].slice(0, 8).join(', ');
+        }
+        resolve(device);
+      };
+
+      const timer = setTimeout(() => void finish(undefined), DuploTrainService.SCAN_TIMEOUT_MS);
+
+      BleClient.requestLEScan({ allowDuplicates: false }, (result: ScanResult) => {
+        const mfg = result.manufacturerData ? Object.keys(result.manufacturerData) : [];
+        const label = (result.localName || result.device.name || result.device.deviceId) +
+          (mfg.length ? ` [mfg:${mfg.join('/')}]` : '');
+        seen.set(result.device.deviceId, label);
+
+        if (this.isTrainHub(result)) {
+          void finish(result.device);
+        }
+      }).catch(() => void finish(undefined));
+    });
+  }
+
+  private isTrainHub(result: ScanResult): boolean {
+    const name = (result.localName || result.device.name || '').toLowerCase();
+    if (name.includes('train') || name.includes('duplo') || name.includes('lego') || name.includes('hub')) {
+      return true;
+    }
+
+    if (result.uuids?.some((uuid) => uuid.toLowerCase() === LWP3_SERVICE_UUID)) {
+      return true;
+    }
+
+    const manufacturer = result.manufacturerData ?? {};
+    return DuploTrainService.LEGO_MANUFACTURER_IDS.some((id) => id in manufacturer);
   }
 
   async setSpeed(speedPercent: number): Promise<void> {
