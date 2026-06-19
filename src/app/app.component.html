@@ -23,6 +23,13 @@
         </div>
       </section>
 
+      @if (liveUpdate.state().status === 'checking' || liveUpdate.state().status === 'downloading' || liveUpdate.state().status === 'ready-to-reload' || liveUpdate.state().status === 'reloading') {
+        <section class="update-card card">
+          <span>✨</span>
+          <strong>{{ liveUpdate.state().message }}</strong>
+        </section>
+      }
+
       @if (train.state().error) {
         <section class="error-card card">
           <strong>Nem sikerült kapcsolódni.</strong>
